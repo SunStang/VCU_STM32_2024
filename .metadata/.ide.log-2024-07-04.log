@@ -1,0 +1,84 @@
+2024-07-04 13:48:34,993 [INFO] WebApp:189 - Connection lost
+2024-07-04 13:48:54,283 [INFO] WebApp:186 - Connection restablished
+2024-07-04 13:48:57,466 [INFO] WebApp:189 - Connection lost
+2024-07-04 13:48:59,067 [INFO] WebApp:186 - Connection restablished
+2024-07-04 16:59:43,169 [INFO] WebApp:189 - Connection lost
+2024-07-04 16:59:43,428 [INFO] WebApp:186 - Connection restablished
+2024-07-04 18:20:06,369 [INFO] WebApp:189 - Connection lost
+2024-07-04 18:20:14,090 [INFO] WebApp:186 - Connection restablished
+2024-07-04 19:36:39,237 [INFO] UtilMem:75 - End SaveConfig() Used Memory: 372132880 Bytes (772800512)
+2024-07-04 19:36:41,317 [INFO] UtilMem:75 - End SaveConfig() Used Memory: 394675216 Bytes (772800512)
+2024-07-04 19:36:46,123 [INFO] UtilMem:75 - End SaveConfig() Used Memory: 502156304 Bytes (772800512)
+2024-07-04 19:36:46,396 [INFO] BlockDiagram:2766 - set Specific Code input for plugin: NVIC
+2024-07-04 19:36:46,396 [INFO] BlockDiagram:2766 - set Specific Code input for plugin: USART
+2024-07-04 19:36:46,396 [INFO] BlockDiagram:2766 - set Specific Code input for plugin: DMA
+2024-07-04 19:36:46,396 [INFO] BlockDiagram:2766 - set Specific Code input for plugin: SYS
+2024-07-04 19:36:46,397 [INFO] BlockDiagram:2766 - set Specific Code input for plugin: GPIO
+2024-07-04 19:36:46,397 [INFO] BlockDiagram:2766 - set Specific Code input for plugin: ADC
+2024-07-04 19:36:46,397 [INFO] BlockDiagram:2766 - set Specific Code input for plugin: CAN
+2024-07-04 19:36:46,397 [INFO] BlockDiagram:2766 - set Specific Code input for plugin: RCC
+2024-07-04 19:36:46,400 [INFO] CodeGenerator:807 - code generatio: config db path: C:\ST\STM32CubeIDE_1.16.0\STM32CubeIDE\plugins\com.st.stm32cube.common.mx_6.12.0.202406281431\\db\
+2024-07-04 19:36:46,411 [INFO] Argument:325 - Argument : hdmavalue: null
+2024-07-04 19:36:46,411 [INFO] Argument:327 - 	 sub Args: 
+2024-07-04 19:36:46,411 [INFO] Argument:325 - Argument : Instancevalue: DMA1_Channel1
+2024-07-04 19:36:46,412 [INFO] Argument:335 - Argument : Instancevalue: DMA1_Channel1
+2024-07-04 19:36:46,412 [INFO] Argument:325 - Argument : Initvalue: null
+2024-07-04 19:36:46,412 [INFO] Argument:327 - 	 sub Args: 
+2024-07-04 19:36:46,412 [INFO] Argument:325 - Argument : Directionvalue: DMA_PERIPH_TO_MEMORY
+2024-07-04 19:36:46,412 [INFO] Argument:335 - Argument : Directionvalue: DMA_PERIPH_TO_MEMORY
+2024-07-04 19:36:46,412 [INFO] Argument:325 - Argument : PeriphIncvalue: DMA_PINC_DISABLE
+2024-07-04 19:36:46,412 [INFO] Argument:335 - Argument : PeriphIncvalue: DMA_PINC_DISABLE
+2024-07-04 19:36:46,412 [INFO] Argument:325 - Argument : MemIncvalue: DMA_MINC_ENABLE
+2024-07-04 19:36:46,412 [INFO] Argument:335 - Argument : MemIncvalue: DMA_MINC_ENABLE
+2024-07-04 19:36:46,412 [INFO] Argument:325 - Argument : PeriphDataAlignmentvalue: DMA_PDATAALIGN_HALFWORD
+2024-07-04 19:36:46,412 [INFO] Argument:335 - Argument : PeriphDataAlignmentvalue: DMA_PDATAALIGN_HALFWORD
+2024-07-04 19:36:46,412 [INFO] Argument:325 - Argument : MemDataAlignmentvalue: DMA_MDATAALIGN_HALFWORD
+2024-07-04 19:36:46,412 [INFO] Argument:335 - Argument : MemDataAlignmentvalue: DMA_MDATAALIGN_HALFWORD
+2024-07-04 19:36:46,412 [INFO] Argument:325 - Argument : Modevalue: DMA_CIRCULAR
+2024-07-04 19:36:46,412 [INFO] Argument:335 - Argument : Modevalue: DMA_CIRCULAR
+2024-07-04 19:36:46,412 [INFO] Argument:325 - Argument : Priorityvalue: DMA_PRIORITY_LOW
+2024-07-04 19:36:46,412 [INFO] Argument:335 - Argument : Priorityvalue: DMA_PRIORITY_LOW
+2024-07-04 19:36:46,412 [INFO] Argument:325 - Argument : Lockvalue: null
+2024-07-04 19:36:46,412 [INFO] Argument:335 - Argument : Lockvalue: null
+2024-07-04 19:36:46,412 [INFO] Argument:325 - Argument : Statevalue: null
+2024-07-04 19:36:46,412 [INFO] Argument:335 - Argument : Statevalue: null
+2024-07-04 19:36:46,412 [INFO] Argument:325 - Argument : Parentvalue: null
+2024-07-04 19:36:46,412 [INFO] Argument:335 - Argument : Parentvalue: null
+2024-07-04 19:36:46,412 [INFO] Argument:325 - Argument : XferCpltCallbackvalue: null
+2024-07-04 19:36:46,412 [INFO] Argument:335 - Argument : XferCpltCallbackvalue: null
+2024-07-04 19:36:46,413 [INFO] Argument:325 - Argument : XferHalfCpltCallbackvalue: null
+2024-07-04 19:36:46,413 [INFO] Argument:335 - Argument : XferHalfCpltCallbackvalue: null
+2024-07-04 19:36:46,413 [INFO] Argument:325 - Argument : XferErrorCallbackvalue: null
+2024-07-04 19:36:46,413 [INFO] Argument:335 - Argument : XferErrorCallbackvalue: null
+2024-07-04 19:36:46,413 [INFO] Argument:325 - Argument : ErrorCodevalue: null
+2024-07-04 19:36:46,413 [INFO] Argument:335 - Argument : ErrorCodevalue: null
+2024-07-04 19:36:46,413 [INFO] Argument:325 - Argument : DMA_Remapvalue: null
+2024-07-04 19:36:46,413 [INFO] Argument:335 - Argument : DMA_Remapvalue: null
+2024-07-04 19:36:46,719 [INFO] CodeEngine:255 - oldGeneratedFile, C:\Users\15149\Coding-Projects\Sunstang\VCU_STM32_2024\Testing\MXTmpFiles\license.tmp_save
+2024-07-04 19:36:46,826 [INFO] CodeEngine:279 - Generated code: C:\Users\15149\Coding-Projects\Sunstang\VCU_STM32_2024\Testing\MXTmpFiles\license.tmp
+2024-07-04 19:36:46,923 [INFO] CodeEngine:255 - oldGeneratedFile, C:\Users\15149\Coding-Projects\Sunstang\VCU_STM32_2024\Testing\MXTmpFiles\gpio.tmp_save
+2024-07-04 19:36:47,016 [INFO] CodeEngine:279 - Generated code: C:\Users\15149\Coding-Projects\Sunstang\VCU_STM32_2024\Testing\MXTmpFiles\gpio.tmp
+2024-07-04 19:36:47,435 [INFO] CodeEngine:255 - oldGeneratedFile, C:\Users\15149\Coding-Projects\Sunstang\VCU_STM32_2024\Testing\MXTmpFiles\dma.tmp_save
+2024-07-04 19:36:47,511 [INFO] CodeEngine:279 - Generated code: C:\Users\15149\Coding-Projects\Sunstang\VCU_STM32_2024\Testing\MXTmpFiles\dma.tmp
+2024-07-04 19:36:47,522 [INFO] CodeEngine:255 - oldGeneratedFile, C:\Users\15149\Coding-Projects\Sunstang\VCU_STM32_2024\Testing\MXTmpFiles\dma_GV.tmp_save
+2024-07-04 19:36:47,595 [INFO] CodeEngine:279 - Generated code: C:\Users\15149\Coding-Projects\Sunstang\VCU_STM32_2024\Testing\MXTmpFiles\dma_GV.tmp
+2024-07-04 19:36:47,649 [INFO] CodeEngine:255 - oldGeneratedFile, C:\Users\15149\Coding-Projects\Sunstang\VCU_STM32_2024\Testing\Core\Src\stm32f3xx_it.c_save
+2024-07-04 19:36:47,844 [INFO] CodeEngine:279 - Generated code: C:\Users\15149\Coding-Projects\Sunstang\VCU_STM32_2024\Testing\Core\Src\stm32f3xx_it.c
+2024-07-04 19:36:47,872 [INFO] CodeEngine:255 - oldGeneratedFile, C:\Users\15149\Coding-Projects\Sunstang\VCU_STM32_2024\Testing\Core\Inc\stm32f3xx_it.h_save
+2024-07-04 19:36:47,967 [INFO] CodeEngine:279 - Generated code: C:\Users\15149\Coding-Projects\Sunstang\VCU_STM32_2024\Testing\Core\Inc\stm32f3xx_it.h
+2024-07-04 19:36:48,012 [INFO] CodeEngine:255 - oldGeneratedFile, C:\Users\15149\Coding-Projects\Sunstang\VCU_STM32_2024\Testing\Core\Src\stm32f3xx_hal_msp.c_save
+2024-07-04 19:36:48,147 [INFO] CodeEngine:279 - Generated code: C:\Users\15149\Coding-Projects\Sunstang\VCU_STM32_2024\Testing\Core\Src\stm32f3xx_hal_msp.c
+2024-07-04 19:36:48,165 [INFO] CodeEngine:255 - oldGeneratedFile, C:\Users\15149\Coding-Projects\Sunstang\VCU_STM32_2024\Testing\MXTmpFiles\system.tmp_save
+2024-07-04 19:36:48,232 [INFO] CodeEngine:279 - Generated code: C:\Users\15149\Coding-Projects\Sunstang\VCU_STM32_2024\Testing\MXTmpFiles\system.tmp
+2024-07-04 19:36:48,270 [INFO] CodeEngine:311 - oldGeneratedFile, C:\Users\15149\Coding-Projects\Sunstang\VCU_STM32_2024\Testing\Core\Inc\stm32f3xx_hal_conf.h_save
+2024-07-04 19:36:48,364 [INFO] CodeEngine:335 - Generated code: C:\Users\15149\Coding-Projects\Sunstang\VCU_STM32_2024\Testing\Core\Inc\stm32f3xx_hal_conf.h
+2024-07-04 19:36:48,422 [INFO] CodeEngine:255 - oldGeneratedFile, C:\Users\15149\Coding-Projects\Sunstang\VCU_STM32_2024\Testing\Core\Inc\main.h_save
+2024-07-04 19:36:48,537 [INFO] CodeEngine:279 - Generated code: C:\Users\15149\Coding-Projects\Sunstang\VCU_STM32_2024\Testing\Core\Inc\main.h
+2024-07-04 19:36:48,573 [INFO] CodeEngine:255 - oldGeneratedFile, C:\Users\15149\Coding-Projects\Sunstang\VCU_STM32_2024\Testing\Core\Src\main.c_save
+2024-07-04 19:36:48,726 [INFO] CodeEngine:279 - Generated code: C:\Users\15149\Coding-Projects\Sunstang\VCU_STM32_2024\Testing\Core\Src\main.c
+2024-07-04 19:36:49,707 [INFO] ProjectBuilder:3249 - Time for Copy HAL[1] : 670mS.
+2024-07-04 19:36:49,712 [INFO] ProjectBuilder:4828 - Project Generator version: 4.4.0-B60
+2024-07-04 19:36:49,816 [INFO] ConfigFileManager:1531 - The Die is : DIE439
+2024-07-04 19:36:52,534 [INFO] ProjectBuilder:5097 - Time for Generating toolchain IDE Files: 2822mS.
+2024-07-04 19:36:52,535 [INFO] ProjectBuilder:3107 - Time for Copy CMSIS : 1mS.
+2024-07-04 19:36:52,542 [INFO] ProjectBuilder:3107 - Time for Copy CMSIS : 0mS.

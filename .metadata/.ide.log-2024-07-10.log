@@ -1,0 +1,36 @@
+2024-07-11 15:58:44,541 [INFO] WebApp:189 - Connection lost
+2024-07-11 15:59:05,997 [INFO] WebApp:186 - Connection restablished
+2024-07-11 19:05:41,619 [INFO] NvicIntPanel:101 - NVIC parent = com.st.microxplorer.plugins.ip.nvic.MultiNvicIntPanel[,0,0,0x0,invalid,layout=javax.swing.BoxLayout,alignmentX=0.0,alignmentY=0.0,border=,flags=9,maximumSize=,minimumSize=,preferredSize=]
+2024-07-11 19:05:51,419 [INFO] UtilMem:75 - End SaveConfig() Used Memory: 354544000 Bytes (981467136)
+2024-07-11 19:05:53,200 [INFO] UtilMem:75 - End SaveConfig() Used Memory: 377086336 Bytes (981467136)
+2024-07-11 19:05:55,167 [INFO] UtilMem:75 - End SaveConfig() Used Memory: 494526848 Bytes (981467136)
+2024-07-11 19:05:55,407 [INFO] BlockDiagram:2766 - set Specific Code input for plugin: NVIC
+2024-07-11 19:05:55,407 [INFO] BlockDiagram:2766 - set Specific Code input for plugin: USART
+2024-07-11 19:05:55,407 [INFO] BlockDiagram:2766 - set Specific Code input for plugin: SYS
+2024-07-11 19:05:55,408 [INFO] BlockDiagram:2766 - set Specific Code input for plugin: GPIO
+2024-07-11 19:05:55,408 [INFO] BlockDiagram:2766 - set Specific Code input for plugin: RCC
+2024-07-11 19:05:55,409 [INFO] CodeGenerator:807 - code generatio: config db path: C:\ST\STM32CubeIDE_1.16.0\STM32CubeIDE\plugins\com.st.stm32cube.common.mx_6.12.0.202406281431\\db\
+2024-07-11 19:05:55,563 [INFO] CodeEngine:255 - oldGeneratedFile, C:\Users\15149\Coding-Projects\Sunstang\VCU_STM32_2024\RaspberryPiUARTExample\MXTmpFiles\license.tmp_save
+2024-07-11 19:05:55,669 [INFO] CodeEngine:279 - Generated code: C:\Users\15149\Coding-Projects\Sunstang\VCU_STM32_2024\RaspberryPiUARTExample\MXTmpFiles\license.tmp
+2024-07-11 19:05:55,739 [INFO] CodeEngine:255 - oldGeneratedFile, C:\Users\15149\Coding-Projects\Sunstang\VCU_STM32_2024\RaspberryPiUARTExample\MXTmpFiles\gpio.tmp_save
+2024-07-11 19:05:55,860 [INFO] CodeEngine:279 - Generated code: C:\Users\15149\Coding-Projects\Sunstang\VCU_STM32_2024\RaspberryPiUARTExample\MXTmpFiles\gpio.tmp
+2024-07-11 19:05:56,010 [INFO] CodeEngine:255 - oldGeneratedFile, C:\Users\15149\Coding-Projects\Sunstang\VCU_STM32_2024\RaspberryPiUARTExample\Core\Src\stm32f3xx_it.c_save
+2024-07-11 19:05:56,180 [INFO] CodeEngine:279 - Generated code: C:\Users\15149\Coding-Projects\Sunstang\VCU_STM32_2024\RaspberryPiUARTExample\Core\Src\stm32f3xx_it.c
+2024-07-11 19:05:56,201 [INFO] CodeEngine:255 - oldGeneratedFile, C:\Users\15149\Coding-Projects\Sunstang\VCU_STM32_2024\RaspberryPiUARTExample\Core\Inc\stm32f3xx_it.h_save
+2024-07-11 19:05:56,279 [INFO] CodeEngine:279 - Generated code: C:\Users\15149\Coding-Projects\Sunstang\VCU_STM32_2024\RaspberryPiUARTExample\Core\Inc\stm32f3xx_it.h
+2024-07-11 19:05:56,316 [INFO] CodeEngine:255 - oldGeneratedFile, C:\Users\15149\Coding-Projects\Sunstang\VCU_STM32_2024\RaspberryPiUARTExample\Core\Src\stm32f3xx_hal_msp.c_save
+2024-07-11 19:05:56,440 [INFO] CodeEngine:279 - Generated code: C:\Users\15149\Coding-Projects\Sunstang\VCU_STM32_2024\RaspberryPiUARTExample\Core\Src\stm32f3xx_hal_msp.c
+2024-07-11 19:05:56,453 [INFO] CodeEngine:255 - oldGeneratedFile, C:\Users\15149\Coding-Projects\Sunstang\VCU_STM32_2024\RaspberryPiUARTExample\MXTmpFiles\system.tmp_save
+2024-07-11 19:05:56,527 [INFO] CodeEngine:279 - Generated code: C:\Users\15149\Coding-Projects\Sunstang\VCU_STM32_2024\RaspberryPiUARTExample\MXTmpFiles\system.tmp
+2024-07-11 19:05:56,562 [INFO] CodeEngine:311 - oldGeneratedFile, C:\Users\15149\Coding-Projects\Sunstang\VCU_STM32_2024\RaspberryPiUARTExample\Core\Inc\stm32f3xx_hal_conf.h_save
+2024-07-11 19:05:56,696 [INFO] CodeEngine:335 - Generated code: C:\Users\15149\Coding-Projects\Sunstang\VCU_STM32_2024\RaspberryPiUARTExample\Core\Inc\stm32f3xx_hal_conf.h
+2024-07-11 19:05:56,778 [INFO] CodeEngine:255 - oldGeneratedFile, C:\Users\15149\Coding-Projects\Sunstang\VCU_STM32_2024\RaspberryPiUARTExample\Core\Inc\main.h_save
+2024-07-11 19:05:56,876 [INFO] CodeEngine:279 - Generated code: C:\Users\15149\Coding-Projects\Sunstang\VCU_STM32_2024\RaspberryPiUARTExample\Core\Inc\main.h
+2024-07-11 19:05:56,899 [INFO] CodeEngine:255 - oldGeneratedFile, C:\Users\15149\Coding-Projects\Sunstang\VCU_STM32_2024\RaspberryPiUARTExample\Core\Src\main.c_save
+2024-07-11 19:05:57,013 [INFO] CodeEngine:279 - Generated code: C:\Users\15149\Coding-Projects\Sunstang\VCU_STM32_2024\RaspberryPiUARTExample\Core\Src\main.c
+2024-07-11 19:05:57,618 [INFO] ProjectBuilder:3249 - Time for Copy HAL[1] : 390mS.
+2024-07-11 19:05:57,623 [INFO] ProjectBuilder:4828 - Project Generator version: 4.4.0-B60
+2024-07-11 19:05:57,700 [INFO] ConfigFileManager:1531 - The Die is : DIE439
+2024-07-11 19:05:59,218 [INFO] ProjectBuilder:5097 - Time for Generating toolchain IDE Files: 1595mS.
+2024-07-11 19:05:59,220 [INFO] ProjectBuilder:3107 - Time for Copy CMSIS : 1mS.
+2024-07-11 19:05:59,225 [INFO] ProjectBuilder:3107 - Time for Copy CMSIS : 0mS.

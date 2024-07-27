@@ -1,0 +1,1107 @@
+/* USER CODE BEGIN Header */
+/**
+ ******************************************************************************
+ * @file           : main.c
+ * @brief          : Main program body
+ ******************************************************************************
+ * @attention
+ *
+ * Copyright (c) 2023 STMicroelectronics.
+ * All rights reserved.
+ *
+ * This software is licensed under terms that can be found in the LICENSE file
+ * in the root directory of this software component.
+ * If no LICENSE file comes with this software, it is provided AS-IS.
+ *
+ ******************************************************************************
+ */
+/* USER CODE END Header */
+/* Includes ------------------------------------------------------------------*/
+#include "main.h"
+
+/* Private includes ----------------------------------------------------------*/
+/* USER CODE BEGIN Includes */
+#include <stdio.h>
+#include <string.h>
+#include <math.h>
+/* USER CODE END Includes */
+
+/* Private typedef -----------------------------------------------------------*/
+/* USER CODE BEGIN PTD */
+
+/* USER CODE END PTD */
+
+/* Private define ------------------------------------------------------------*/
+/* USER CODE BEGIN PD */
+
+/* USER CODE END PD */
+
+/* Private macro -------------------------------------------------------------*/
+/* USER CODE BEGIN PM */
+
+/* USER CODE END PM */
+
+/* Private variables ---------------------------------------------------------*/
+ADC_HandleTypeDef hadc1;
+DMA_HandleTypeDef hdma_adc1;
+
+CAN_HandleTypeDef hcan;
+
+UART_HandleTypeDef huart2;
+
+/* USER CODE BEGIN PV */
+
+/* USER CODE END PV */
+
+/* Private function prototypes -----------------------------------------------*/
+void SystemClock_Config(void);
+static void MX_GPIO_Init(void);
+static void MX_DMA_Init(void);
+static void MX_USART2_UART_Init(void);
+static void MX_CAN_Init(void);
+static void MX_ADC1_Init(void);
+/* USER CODE BEGIN PFP */
+
+/* USER CODE END PFP */
+
+/* Private user code ---------------------------------------------------------*/
+/* USER CODE BEGIN 0 */
+
+// Defines
+#define CRUISE_CONTROL_MIN 15
+#define NUM_ANALOG_INPUTS 2
+
+// *****************************************************************************
+// ADC variables
+uint16_t num;
+char buf[64]; //change to the thing you want to print
+uint32_t wait;
+uint32_t tickFreq = (uint32_t) HAL_GetTickFreq;
+//uint32_t currTick;
+//uint32_t prevTickOp = 0;
+//uint32_t prevTickCAN = 0;
+//uint32_t prevTickDrive = 0;
+//uint32_t prevTickPower = 0;
+//uint8_t CANWait = 150; //150ms
+//uint8_t DrivePeriod = 50; //50ms
+//uint8_t PowerPeriod = 80; //80ms
+int datacheck = 0;
+
+// array to store ADC results
+volatile uint16_t adcResults[2];
+const int adcChannelCount = sizeof(adcResults) / sizeof(adcResults[0]);
+volatile int adcConversionComplete = 0; // set by a callback function
+
+// Analog inputs
+uint16_t Acceleration = 0;
+uint16_t Regen_ADJ = 0;
+
+
+// ***************************************
+// CAN variables
+CAN_TxHeaderTypeDef TxHeaderData;
+CAN_TxHeaderTypeDef TxHeaderRequest;
+CAN_RxHeaderTypeDef RxHeader;
+
+uint8_t TxRequest[8];
+uint8_t RxData[8];
+
+// Mailboxes
+uint32_t TxMailbox;
+//uint32_t Charger_MB;
+//uint32_t BMS_MB;
+//uint32_t MotorController_MB1;
+//uint32_t MotorController_MB2;
+
+union Data {
+	int i;
+	float f;
+	uint8_t byte[8];
+};
+
+union Data upperByte; 	//aid in converting upper bytes to float
+
+union Data TxData;
+//union Data Current; 	//motor current percent of max current
+//union Data Velocity; 	//motor velocity desired output
+union Data Power; 		//bus current max percent of absolute current
+union Data RPM; 		//motor current rpm
+union Data CC_Velocity;
+union Data DesiredVelocity;
+union Data DesiredCurrent;
+union Data BusCurrent;
+
+union Data VehicleVelocity;
+union Data VehicleCurrent;
+union Data BMS_PackTemp;
+union Data BMS_PackVoltage;
+union Data BMS_CurrentDraw;
+
+// This function handles CAN messages. It is triggered by the interrupt later in
+//		the code. It reads CAN messages and executes code based on the
+//		header ID in the message
+void HAL_CAN_RxFifo1MsgPendingCallback(CAN_HandleTypeDef *hcan) {
+	// HAL_CAN_GetRxMessage() is the function that retrieves the CAN message
+	HAL_CAN_GetRxMessage(hcan, CAN_RX_FIFO1, &RxHeader, RxData);
+	/*Need to change datacheck to bits and then assign bits per instruction
+	 * bit mask back in the code for what the flag says it needs to do
+	 * Reason: msgs can come in quicker than code execution
+	 * Don't want overwrite of actions for only 1 action
+	 */
+	//Will also need to add in switch case for the RxHeader.StdId
+	switch (RxHeader.StdID) {
+		case 0x403:
+			datacheck = 1;
+			break;
+
+		// Motor Controllers
+		// Vehicle velocity
+		case 0x503:
+			memcpy(VehicleVelocity.byte, RxData, sizeof(RxData));
+			break;
+
+		// Heat sink temperature
+		case 0x50b:
+			memcpy(HeatSinkTemp.byte, RxData, sizeof(RxData));
+			break;
+
+		// BMS
+		// BMS Pack Temperature
+		case 0x301: // placeholder
+			memcpy(BMS_PackTemp.byte, RxData, sizeof(RxData));
+			break;
+
+		// BMS Pack Voltage
+		case 0x302:
+			memcpy(BMS_PackVoltage.byte, RxData, sizeof(RxData));
+			break;
+
+		//Current Draw
+		case 0x303:
+			memcpy(BMS_CurrentDraw.byte, RxData, sizeof(RxData));
+			break;
+}
+
+
+// for received messages?
+float ByteToFloat(uint8_t byte0, uint8_t byte1, uint8_t byte2, uint8_t byte3) {
+	uint8_t Abyte[4] = { byte0, byte1, byte2, byte3 };
+	for (int i = 0; i <= 3; i++) {
+		upperByte.byte[i] = Abyte[i];
+	}
+	return upperByte.f;
+}
+
+// **************************************
+// driver control variables
+struct DigitalInput {
+	uint16_t Drive;
+	uint16_t Neutral;
+	uint16_t Reverse;
+	uint16_t CC_reset;
+	uint16_t CC_set;
+	uint16_t CC_enable;
+	uint16_t brake;
+	uint16_t regen_en;
+	uint16_t brake_light; // this does not require a state variable
+	uint16_t r_signal;
+	uint16_t l_signal;
+	uint16_t hazards;
+};
+
+// digital input variables
+struct DigitalInput input;
+
+// state variables
+struct DigitalInput state;
+
+//Thermal Shutoff variable
+float deratedCurrent;
+// *************************************************
+// timer variables
+
+uint32_t currtick;
+
+// input timers
+uint32_t prevTickHighPriority;
+uint32_t prevTickMediumPriority;
+uint32_t prevTickLowPriority;
+
+uint8_t HighPriorityWait = 100;
+uint8_t MediumPriorityWait = 250;
+uint8_t LowPriorityWait
+750;
+
+// task execution timers
+uint32_t prevThermalShutoff;
+uint32_t prevTickCAN;
+uint32_t prevTickPower;
+uint32_t prevTickBrake;
+uint32_t prevTickSignal; // accounts for left, right signals, and hazards
+uint32_t prevTickMotive;
+uint32_t prevRPiMsg;
+
+uint8_t ThermalShutoffWait;
+uint8_t CANWait;
+uint8_t PowerWait;
+uint8_t BrakeWait;
+uint8_t SignalWait; // accounts for left, right signals, and hazards
+uint8_t MotiveWait;
+uint8_t RPiMsgWait;
+
+// ********************************************************
+// timer functions
+void cruise_control(void) {
+	return;
+}
+
+void motor_control(void) {
+	if (state.Drive) {
+		if (state.regen_en) {
+			DesiredVelocity.i = 0;
+			DesiredCurrent.i = Regen_ADJ;
+		}
+
+		if (state.CC_enable) {
+			cruise_control();
+		} else {
+			CC_Velocity.f = 0;
+			DesiredVelocity.f = 1000;
+			DesiredCurrent.f = DesiredCurrent.f = 0.00000006
+					* (pow((float) accel, 2));
+		}
+	} else if (state.Reverse) {
+		DesiredVelocity.f = -1000;
+		DesiredCurrent.f = DesiredCurrent.f = 0.00000006
+				* (pow((float) brake, 2));
+	} else if (state.Neutral) {
+		DesiredVelocity.f = 0;
+		DesiredCurrent.f = 0;
+	}
+
+	if (deratedCurrent){
+		BusCurrent.f = deratedCurrent;
+	} else {
+		BusCurrent.f = 1;
+	}
+
+	//Assemble frame
+	//  might as well assign a new frame cos thats too much effort to copy over
+	uint8_t MotiveTx[] = {DesiredVelocity.byte[0], DesiredVelocity.byte[1],
+			DesiredVelocity.byte[2], DesiredVelocity.byte[3],
+			DesiredCurrent.byte[0], DesiredCurrent.byte[1],
+			DesiredCurrent.byte[2], DesiredCurrent.byte[3]};
+	uint8_t PowerTx[] = {0, 0, 0, 0, BusCurrent.byte[0], BusCurrent.byte[1],
+			BusCurrent.byte[2], BusCurrent.byte[3]};
+	}
+
+
+	//Alter address to send to
+	TxHeaderData.StdId = 0x501;
+	//all the header ids
+
+	//Send frame
+	HAL_CAN_AddTxMessage(&hcan, &TxHeaderData, MotiveTx, &TxMailbox);
+
+}
+
+//******************************************************************
+// error handling and testing variables
+HAL_StatusTypeDef status;
+//char CurrentTask[50];
+/*void checkStatus(HAL_StatusTypeDef status, const char *task) {
+ if (status == !HAL_OK) {
+ const char *HALcode;
+ switch (status) {
+ case HAL_ERROR:
+ HALcode = "HAL_ERROR";
+ break;
+ case HAL_BUSY:
+ HALcode = "HAL_BUSY";
+ break;
+ case HAL_TIMEOUT:
+ HALcode = "HAL_TIMEOUT";
+ break;
+ default:
+ HALcode = "Unknown HAL status";
+ break;
+ sprintf("%s: %s\r\n", HALcode, task);
+ Error_Handler();
+ }
+ }else {
+ sprintf(buf, "HAL_OK: %s.\r\n", task);
+ }
+ HAL_UART_Transmit(&huart2, buf, strlen(buf), HAL_MAX_DELAY);
+
+ }*/
+
+/* USER CODE END 0 */
+
+/**
+ * @brief  The application entry point.
+ * @retval int
+ */
+int main(void) {
+
+	/* USER CODE BEGIN 1 */
+
+	/* USER CODE END 1 */
+
+	/* MCU Configuration--------------------------------------------------------*/
+
+	/* Reset of all peripherals, Initializes the Flash interface and the Systick. */
+	HAL_Init();
+
+	/* USER CODE BEGIN Init */
+
+	/* USER CODE END Init */
+
+	/* Configure the system clock */
+	SystemClock_Config();
+
+	/* USER CODE BEGIN SysInit */
+
+	/* USER CODE END SysInit */
+
+	/* Initialize all configured peripherals */
+	MX_GPIO_Init();
+	MX_DMA_Init();
+	MX_USART2_UART_Init();
+	MX_CAN_Init();
+	MX_ADC1_Init();
+	/* USER CODE BEGIN 2 */
+
+	// CAN variables
+	status = HAL_CAN_Start(&hcan);
+
+	TxHeaderData.DLC = 8;
+	TxHeaderData.IDE = CAN_ID_STD;
+	TxHeaderData.RTR = CAN_RTR_DATA; //remot
+	TxHeaderData.StdId = 0x500; //set the ID of the VCU
+
+	TxHeaderRequest.DLC = 8;
+	TxHeaderRequest.IDE = CAN_ID_STD;
+	TxHeaderRequest.RTR = CAN_RTR_REMOTE;
+	TxHeaderRequest.StdId = 0x500; //Set the ID of VCU
+
+	// CAN variables for reading in unwanted data
+	CAN_RxHeaderTypeDef RxIdentification;
+	RxIdentification.StdId = 0x500;
+	// HAL_CAN_ActivateNotification() generates an interrupt based on the given
+	// 	CAN address and condition. in this case, the condition
+	//	CAN_IT_RX_FIFO1_MSG_PENDING triggers an interrupt when there is a
+	//	message received by FIFO1 (in the queue). This interrupt triggers the
+	//	HAL library to automatically call the function
+	//	HAL_CAN_RxFifo1MsgPendingCallback()
+	status = HAL_CAN_ActivateNotification(&hcan, CAN_IT_RX_FIFO1_MSG_PENDING);
+	//checkStatus(status, "HAL_CAN_ActivateNotification()");
+
+	/* USER CODE END 2 */
+
+	/* Infinite loop */
+	/* USER CODE BEGIN WHILE */
+	while (1) {
+		/* USER CODE END WHILE */
+
+		/* USER CODE BEGIN 3 */
+		//Set the current time
+		currTick = HAL_GetTick();
+
+		/* -- Debugging
+		 //print out some information to the console via UART
+		 //sprintf(buf, "%u: %lu: %lu \r\n", num, tickFreq, currTick);
+		 //HAL_UART_Transmit(&huart2, buf, strlen(buf), HAL_MAX_DELAY);
+		 */
+
+
+		// Thermal shutoff
+		if (currtick - prevThermalShutoff > ThermalShutoffWait) {
+			if ((VehicleCurrent.f <= -1 && (float) BMS_PackTemp >= 42)
+					|| (VehicleCurrent.f >= 0 && (float) BMS_PackTemp >= 57)) {
+				//Turn the pin off
+				HAL_GPIO_WritePin(Thermal_Shutoff_GPIO_Port,
+						Thermal_Shutoff_Pin, GPIO_Pin_RESET);
+				//if current neg and between 37 - 42 then derate regen
+				//if current is neg and above 43 derate to 0
+				//current pos full regen up until 52 - 57, start derating then
+
+			}
+
+			// derate the current if the battery pack temperature is too high
+			if (VehicleCurrent.f <= -1 && BMS_PackTemp_ > 52) {
+				deratedCurrent = 57 - BMS_PackTemp * 0.2;
+			} else if (VehicleCurrent.f >= 0 && BMS_PackTemp_ > 37) {
+				deratedCurrent = 42 - BMS_PackTemp * 0.2;
+			} else {
+				deratedCurrent = 0;
+			}
+
+		}
+
+		////////////////////////////////////////////////////
+		// INPUT READING AND STATE SETTING
+		// High Priority tasks: brake and gear settings
+		if (currtick - prevTickHighPriority > HighPriorityWait) {
+			input.brake = HAL_GPIO_ReadPin(Foot_Brake_GPIO_Port,
+			Foot_Brake_Pin);
+			input.Reverse = HAL_GPIO_ReadPin(Reverse_GPIO_Port, Reverse_Pin);
+			input.Neutral = HAL_GPIO_ReadPin(Neutral_GPIO_Port, Neutral_Pin);
+			input.Drive = HAL_GPIO_ReadPin(Drive_GPIO_Port, Drive_Pin);
+
+			// motive state-setting algorithm
+			// Brake is on or state is Neutral
+			if (input.brake || input.Neutral) {
+				state.Drive = 0;
+				state.Neutral = 0;
+				state.CC_enable = 0;
+				state.Neutral = 1;
+				// State is Drive
+			} else if (input.Drive && VehicleVelocity.i >= 0) {
+				if (input.CC_enable && VehicleVelocity.i > CRUISE_CONTROL_MIN) {
+					state.CC_enable = 1;
+				} else {
+					//state.CC = 0;
+					CC_Velocity = 0;
+				}
+				//57 or 52?
+				if (input.regen_en && Acceleration == 0 && BMS_PackTemp < 57) {
+					state.regen_en = 1;
+				} else {
+					state.regen_en = 0;
+				}
+
+				state.Reverse = 0;
+				state.Neutral = 0;
+				state.Drive = 1;
+
+				// State is Reverse
+			} else if (input.Reverse && VehicleVelocity.i <= 0) {
+				state.Drive = 0;
+				state.Neutral = 0;
+				state.CC_enable = 0;
+				state.Reverse = 1;
+
+				//idk i left this case in, sets to neutral
+			} else {
+				state.Drive = 0;
+				state.Neutral = 0;
+				state.CC_enable = 0;
+				state.Neutral = 1;
+				//regen?
+			}
+			prevTickHighPriority = currtick;
+		}
+
+		// Medium Priority tasks:
+		//  - cruise control
+		//  - Reading in ADC values
+		if (currtick - prevTickMediumPriority > MediumPriorityWait) {
+			input.CC_enable = HAL_GPIO_ReadPin(Cruise_Control_EN_GPIO_Port,
+					Cruise_Control_EN_Pin);
+			input.CC_reset = HAL_GPIO_ReadPin(Cruise_Control_Reset_GPIO_Port,
+					Cruise_Control_Reset_Pin);
+			input.CC_set = HAL_GPIO_ReadPin(Cruise_Control_Set_GPIO_Port,
+					Cruise_Control_Set_Pin);
+			input.regen_en = HAL_GPIO_ReadPin(Regen_EN_GPIO_Port, Regen_EN_Pin);
+
+			//ADC readings with DMA help
+			status = HAL_ADC_Start_DMA(&hadc1, (uint32_t*) adcResults,
+					adcChannelCount);
+			while (adcConversionComplete == 0) {
+			} //waiting for conversion to complete
+			adcConversionComplete = 0;
+			// check function status
+			//checkStatus(status, "HAL_ADC_Start_DMA()");
+
+			/*
+			 //Record the ADC value from channel 1 to num
+			 HAL_ADC_Start(&hadc1);
+			 HAL_ADC_PollForConversion(&hadc1, HAL_MAX_DELAY);
+			 num = HAL_ADC_GetValue(&hadc1);
+			 */
+			//set wait
+			//wait = 250;
+			Acceleration = adcResults[0];
+			Regen_ADJ = ((float) adcResults[1] + 1) / 4096;
+
+			prevTickMediumPriority = currtick;
+		}
+
+
+		// Low priority tasks:
+		//  - hazard lights
+		//  - signal lights
+		if (currtick - prevTickLowPriority > LowPriorityWait) {
+			input.hazard = state.hazard = HAL_GPIO_ReadPin(Hazards_GPIO_Port,
+			Hazards_Pin);
+			// if input is 1 for hazard, then right and left signal lights state is set to 0
+			if (input.hazard) {
+				// if the right or left signals were on during the last cycle,  their inputs will be set to off
+				// this is not strictly necessary as the conditional statement in the timed function will have
+				// hazard input override the signal light states anyway. this combined with the next chunk of code
+				// will make sure that the signal lights will blink in sync in hazards mode, and
+				// that the signal light is turned off when the signal light input ceases.
+				if (input.r_signal || input.l_signal) {
+					input.r_signal = 0;
+					input.l_signal = 0;
+				} else {
+					input.r_signal = HAL_GPIO_ReadPin(Right_Turn_GPIO_Port,
+					Right_Turn_Pin);
+					input.l_signal = HAL_GPIO_ReadPin(Left_Turn_GPIO_Port,
+					Left_Turn_Pin);
+				}
+			}
+
+			// Signal light state-setting
+			// make sure that the light is turned off when signal light input shuts off
+			// if the state for r signal is on but the input for r signal is off, then
+			// set the light to the off state
+			if (input.r_signal == 0 && state.r_signal == 1) {
+				HAL_GPIO_WritePin(Right_Turn_GPIO_Port, Right_Turn_Pin,
+						GPIO_Pin_RESET);
+				state.r_signal = input.r_signal = 0;
+				// turn the DRL back on
+				HAL_GPIO_WritePin(DRL_Right_GPIO_Port, DRL_Right_Pin);
+			} else {
+				// else the r signal light has the same state as the input
+				state.r_signal = input.r_signal;
+			}
+
+			// same for left signal light
+			if (input.l_signal == 0 && state.l_signal == 1) {
+				HAL_GPIO_WritePin(Left_Turn_GPIO_Port, Left_Turn_Pin,
+						GPIO_Pin_RESET);
+				input.l_signal = state.l_signal = 0;
+			} else {
+				state.l_signal = input.l_signal;
+				HAL_GPIO_WritePin(DRL_Left_GPIO_Port, DRL_Left_Pin);
+			}
+			prevTickLowPriority = currtick;
+		}
+
+		// if foot off accel and regen on
+		// set current scaled value of the regen adjust
+		// set velocity 0
+
+		//////////////////////////////////////////////////////////////////
+		// TASK EXECUTION
+		/*
+		 // Thermal shutoff
+		 if (currtick - prevThermalShutoff > ThermalShutoffWait){
+		 if ((VehicleCurrent.f <= -1 && (float) BMS_PackTemp >= 42)
+		 || (VehicleCurrent.f >= 0 && (float) BMS_PackTemp >= 57)){
+		 //Turn the pin off
+		 HAL_GPIO_WritePin(Thermal_Shutoff_GPIO_Port, Thermal_Shutoff_Pin,
+		 GPIO_Pin_RESET);
+
+		 }
+		 if (BMS_PackTemp_> 52){
+		 derate = 1;
+		 DesiredCurrent.f = 57 - BMS_PackTemp * 0.2;
+		 }
+		 }
+		 */
+
+		// motor controller
+		if (currtick - prevTickMotive > MotiveWait) {
+			motor_control();
+
+			if (input.brake) {
+				HAL_GPIO_WritePin(Brake_Lights_GPIO_Port, Brake_Lights_Pin,
+						GPIO_Pin_SET);
+			} else {
+				HAL_GPIO_WritePin(Brake_Lights_GPIO_Port, Brake_Lights_Pin,
+						GPIO_Pin_RESET);
+			}
+
+			prevTickMotive = currtick;
+		}
+
+		// Signal light/hazard light task execution
+		if (currtick - prevTickSignal > SignalWait) {
+			if (input.hazard) {
+				HAL_GPIO_TogglePin(Right_Lights_GPIO_Port, Right_Lights_Pin);
+				HAL_GPIO_TogglePin(Left_Lights_GPIO_Port, Left_Lights_Pin);
+			} else if (state.l_signal) {
+				// The signal light always starts in the off position and the
+				// DRL starts in the on position, so toggle will cause
+				// them to blink asynchronously
+				HAL_GPIO_TogglePin(Left_Lights_GPIO_Port, Left_Lights_Pin);
+				HAL_GPIO_TogglePin(DRL_Left_GPIO_Port, DRL_Left_Pin);
+			} else if (state.r_signal) {
+				HAL_GPIO_TogglePin(Right_Lights_GPIO_Port, Right_Lights_Pin);
+				HAL_GPIO_TogglePin(DRL_Right_GPIO_Port, DRL_Right_Pin);
+			} else {
+				HAL_GPIO_WritePin(Right_Lights_GPIO_Port, Right_Lights_Pin,
+						GPIO_Pin_RESET);
+				HAL_GPIO_WritePin(Left_Lights_GPIO_Port, Left_Lights_Pin,
+						GPIO_Pin_RESET);
+				HAL_GPIO_WritePin(DRL_Right_GPIO_Port, DRL_Right_Pin);
+				HAL_GPIO_WritePin(DRL_Left_GPIO_Port, DRL_Left_Pin);
+			}
+			prevTickSignal = currtick;
+		}
+
+		if (currtick - prevRPiMsg > RPiMsgWait){
+			sprintf(buf, "HAL_OK: %s.\r\n", task);
+
+			HAL_UART_Transmit(&huart2, buf, strlen(buf), HAL_MAX_DELAY);
+		}
+
+		/*
+		 ////////////////////////////////////////////////////////////////
+		 // JD test code
+		 //toggle a GPIO pin with the time delay from the potentiometer
+		 if (currTick - prevTickOp > wait) {
+
+		 HAL_GPIO_TogglePin(GPIOB, GPIO_PIN_13);
+
+		 // -- Debugging
+		 sprintf(buf, "Acel: %u  Brake: %u \r\n", adcResults[0],
+		 adcResults[1]);
+		 HAL_UART_Transmit(&huart2, buf, strlen(buf), HAL_MAX_DELAY);
+
+		 prevTickOp = currTick;
+		 }
+
+		 //create a delay to send CAN messages THIS IS TEST
+		 if (currTick - prevTickCAN > CANWait) {
+		 //set the CAN message to send
+		 //uint8_t Tx[] = {50, 0xAA};
+		 TxData.f = wait;
+
+		 //Must Assemble the bytes in the union to get an array,
+		 uint8_t Tx[] = { TxData.byte[0], TxData.byte[1], TxData.byte[2],
+		 TxData.byte[3], 0, 0, 0, 0 };
+
+		 //Alter address to send to
+		 TxHeaderData.StdId = 0x800;
+
+		 //send a message through CAN as data
+		 status = HAL_CAN_AddTxMessage(&hcan, &TxHeaderData, Tx, &TxMailbox);
+		 prevTickCAN = currTick;
+		 }
+
+		 //send the motor drive command frame, 50ms delay
+		 if (currTick - prevTickDrive > DrivePeriod) {
+
+		 //If we are not braking
+		 if (brake == 0) {
+		 //And not accelerating
+		 if (acel == 0) {
+		 //Set to coast
+		 Velocity.f = 0;
+		 Current.f = 0;
+		 }
+		 //And accelerating
+		 else {
+		 //Set high velocity, and scale the current
+		 Velocity.f = 1000;
+		 //convert the int to float for the current percent
+		 //Current.f = (float)acel/4096;
+		 Current.f = 0.00000006 * (pow((float) acel, 2));
+		 }
+		 //If we are braking
+		 } else {
+		 //Set velocity to 0
+		 Velocity.f = 0;
+		 //And if we are not pressing accelerator
+		 if (acel == 0) {
+		 //Scale re-gen current with brake until rpm is below a set point
+		 if (RPM.f > 120) {
+		 //Current.f = (float)brake/4096;
+		 Current.f = 0.00000002 * (pow((float) brake, 2));
+		 }
+		 //If we are pressing both pedals at same time
+		 } else {
+		 //in addition to velocity set to 0, current set to 0
+		 Current.f = 0;
+		 }
+		 }
+
+		 //Assemble frame
+		 uint8_t DriveTx[] = { Velocity.byte[0], Velocity.byte[1],
+		 Velocity.byte[2], Velocity.byte[3], Current.byte[0],
+		 Current.byte[1], Current.byte[2], Current.byte[3] };
+
+		 //Alter address to send to
+		 TxHeaderData.StdId = 0x501;
+
+		 //Send frame
+		 HAL_CAN_AddTxMessage(&hcan, &TxHeaderData, DriveTx, &DriveMB);
+
+		 //reset Time
+		 prevTickDrive = currTick;
+		 }
+
+		 //send the motor drive command frame, 80ms delay
+		 if (currTick - prevTickPower > PowerPeriod) {
+
+		 //Set percent to 100
+		 Power.f = 1.0;
+
+		 //Assemble frame
+		 uint8_t PowerTx[] = { 0, 0, 0, 0, Power.byte[0], Power.byte[1],
+		 Power.byte[2], Power.byte[3] };
+
+		 //Alter address to send to
+		 TxHeaderData.StdId = 0x502;
+
+		 //Send frame
+		 HAL_CAN_AddTxMessage(&hcan, &TxHeaderData, PowerTx, &PowerMB);
+
+		 //reset Time
+		 prevTickPower = currTick;
+		 }
+		 */
+
+		//if the data flag is set, do something then reset the flag
+		if (datacheck) {
+			// -- Debugging
+			/*
+			 sprintf(buf, "%d: %u%u%u%u%u%u%u%u \r\n", RxHeader.StdId, RxData[7],RxData[6], RxData[5], RxData[4],
+			 RxData[3], RxData[2], RxData[1], RxData[0]);
+			 HAL_UART_Transmit(&huart2, buf, strlen(buf), HAL_MAX_DELAY);
+			 */
+			/*sprintf(buf, "In receive \r\n");
+			 HAL_UART_Transmit(&huart2, buf, strlen(buf), HAL_MAX_DELAY);
+			 */
+			for (char i = 0; i <= 8; i++) {
+				RPM.byte[i] = RxData[i];
+			}
+
+			/*sprintf(buf, "%x: Velocity: %e m/s RPM: %e \r\n", RxHeader.StdId, ByteToFloat(RPM.byte[4], RPM.byte[5], RPM.byte[6], RPM.byte[7]),
+			 ByteToFloat(RPM.byte[3], RPM.byte[2], RPM.byte[1], RPM.byte[0]));
+			 HAL_UART_Transmit(&huart2, buf, strlen(buf), HAL_MAX_DELAY);
+			 */
+			datacheck = 0; //reset
+		}
+	}
+	/* USER CODE END 3 */
+}
+
+/**
+ * @brief System Clock Configuration
+ * @retval None
+ */
+void SystemClock_Config(void) {
+	RCC_OscInitTypeDef RCC_OscInitStruct = { 0 };
+	RCC_ClkInitTypeDef RCC_ClkInitStruct = { 0 };
+	RCC_PeriphCLKInitTypeDef PeriphClkInit = { 0 };
+
+	/** Initializes the RCC Oscillators according to the specified parameters
+	 * in the RCC_OscInitTypeDef structure.
+	 */
+	RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSI;
+	RCC_OscInitStruct.HSIState = RCC_HSI_ON;
+	RCC_OscInitStruct.HSICalibrationValue = RCC_HSICALIBRATION_DEFAULT;
+	RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
+	RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSI;
+	RCC_OscInitStruct.PLL.PLLMUL = RCC_PLL_MUL9;
+	if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK) {
+		Error_Handler();
+	}
+
+	/** Initializes the CPU, AHB and APB buses clocks
+	 */
+	RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK | RCC_CLOCKTYPE_SYSCLK
+			| RCC_CLOCKTYPE_PCLK1 | RCC_CLOCKTYPE_PCLK2;
+	RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_PLLCLK;
+	RCC_ClkInitStruct.AHBCLKDivider = RCC_SYSCLK_DIV1;
+	RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV2;
+	RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV1;
+
+	if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_1) != HAL_OK) {
+		Error_Handler();
+	}
+	PeriphClkInit.PeriphClockSelection = RCC_PERIPHCLK_ADC1;
+	PeriphClkInit.Adc1ClockSelection = RCC_ADC1PLLCLK_DIV1;
+
+	if (HAL_RCCEx_PeriphCLKConfig(&PeriphClkInit) != HAL_OK) {
+		Error_Handler();
+	}
+}
+
+/**
+ * @brief ADC1 Initialization Function
+ * @param None
+ * @retval None
+ */
+static void MX_ADC1_Init(void) {
+
+	/* USER CODE BEGIN ADC1_Init 0 */
+
+	/* USER CODE END ADC1_Init 0 */
+
+	ADC_ChannelConfTypeDef sConfig = { 0 };
+
+	/* USER CODE BEGIN ADC1_Init 1 */
+
+	/* USER CODE END ADC1_Init 1 */
+
+	/** Common config
+	 */
+	hadc1.Instance = ADC1;
+	hadc1.Init.ClockPrescaler = ADC_CLOCK_ASYNC_DIV1;
+	hadc1.Init.Resolution = ADC_RESOLUTION_12B;
+	hadc1.Init.ScanConvMode = ADC_SCAN_DISABLE;
+	hadc1.Init.ContinuousConvMode = DISABLE;
+	hadc1.Init.DiscontinuousConvMode = DISABLE;
+	hadc1.Init.ExternalTrigConvEdge = ADC_EXTERNALTRIGCONVEDGE_NONE;
+	hadc1.Init.ExternalTrigConv = ADC_SOFTWARE_START;
+	hadc1.Init.DataAlign = ADC_DATAALIGN_RIGHT;
+	hadc1.Init.NbrOfConversion = 1;
+	hadc1.Init.DMAContinuousRequests = DISABLE;
+	hadc1.Init.EOCSelection = ADC_EOC_SINGLE_CONV;
+	hadc1.Init.LowPowerAutoWait = DISABLE;
+	hadc1.Init.Overrun = ADC_OVR_DATA_OVERWRITTEN;
+	if (HAL_ADC_Init(&hadc1) != HAL_OK) {
+		Error_Handler();
+	}
+
+	/** Configure Regular Channel
+	 */
+	sConfig.Channel = ADC_CHANNEL_1;
+	sConfig.Rank = ADC_REGULAR_RANK_1;
+	sConfig.SingleDiff = ADC_SINGLE_ENDED;
+	sConfig.SamplingTime = ADC_SAMPLETIME_1CYCLE_5;
+	sConfig.OffsetNumber = ADC_OFFSET_NONE;
+	sConfig.Offset = 0;
+	if (HAL_ADC_ConfigChannel(&hadc1, &sConfig) != HAL_OK) {
+		Error_Handler();
+	}
+	/* USER CODE BEGIN ADC1_Init 2 */
+
+	/* USER CODE END ADC1_Init 2 */
+
+}
+
+/**
+ * @brief CAN Initialization Function
+ * @param None
+ * @retval None
+ */
+static void MX_CAN_Init(void) {
+
+	/* USER CODE BEGIN CAN_Init 0 */
+
+	/* USER CODE END CAN_Init 0 */
+
+	/* USER CODE BEGIN CAN_Init 1 */
+
+	/* USER CODE END CAN_Init 1 */
+	hcan.Instance = CAN;
+	hcan.Init.Prescaler = 12;
+	hcan.Init.Mode = CAN_MODE_NORMAL;
+	hcan.Init.SyncJumpWidth = CAN_SJW_1TQ;
+	hcan.Init.TimeSeg1 = CAN_BS1_1TQ;
+	hcan.Init.TimeSeg2 = CAN_BS2_1TQ;
+	hcan.Init.TimeTriggeredMode = DISABLE;
+	hcan.Init.AutoBusOff = DISABLE;
+	hcan.Init.AutoWakeUp = DISABLE;
+	hcan.Init.AutoRetransmission = DISABLE;
+	hcan.Init.ReceiveFifoLocked = DISABLE;
+	hcan.Init.TransmitFifoPriority = DISABLE;
+	if (HAL_CAN_Init(&hcan) != HAL_OK) {
+		Error_Handler();
+	}
+	/* USER CODE BEGIN CAN_Init 2 */
+
+//Set a up a filter
+//Allow all messages to pass through from any ID
+	CAN_FilterTypeDef cf1;
+	cf1.FilterActivation = CAN_FILTER_ENABLE;
+	cf1.FilterBank = 0;
+	cf1.FilterFIFOAssignment = CAN_FILTER_FIFO1;
+	cf1.FilterMode = CAN_FILTERMODE_IDMASK;
+	cf1.FilterScale = CAN_FILTERSCALE_32BIT;
+	cf1.FilterIdLow = 0x0;
+	cf1.FilterIdHigh = 0x0 << 5;
+	cf1.FilterMaskIdLow = 0x0;
+	cf1.FilterMaskIdHigh = 0x0 << 5;
+
+// this function applies the filter to the CAN peripheral
+	HAL_CAN_ConfigFilter(&hcan, &cf1);
+
+	/* USER CODE END CAN_Init 2 */
+
+}
+
+/**
+ * @brief USART2 Initialization Function
+ * @param None
+ * @retval None
+ */
+static void MX_USART2_UART_Init(void) {
+
+	/* USER CODE BEGIN USART2_Init 0 */
+
+	/* USER CODE END USART2_Init 0 */
+
+	/* USER CODE BEGIN USART2_Init 1 */
+
+	/* USER CODE END USART2_Init 1 */
+	huart2.Instance = USART2;
+	huart2.Init.BaudRate = 115200;
+	huart2.Init.WordLength = UART_WORDLENGTH_8B;
+	huart2.Init.StopBits = UART_STOPBITS_1;
+	huart2.Init.Parity = UART_PARITY_NONE;
+	huart2.Init.Mode = UART_MODE_TX_RX;
+	huart2.Init.HwFlowCtl = UART_HWCONTROL_NONE;
+	huart2.Init.OverSampling = UART_OVERSAMPLING_16;
+	huart2.Init.OneBitSampling = UART_ONE_BIT_SAMPLE_DISABLE;
+	huart2.AdvancedInit.AdvFeatureInit = UART_ADVFEATURE_NO_INIT;
+	if (HAL_UART_Init(&huart2) != HAL_OK) {
+		Error_Handler();
+	}
+	/* USER CODE BEGIN USART2_Init 2 */
+
+	/* USER CODE END USART2_Init 2 */
+
+}
+
+/**
+ * Enable DMA controller clock
+ */
+static void MX_DMA_Init(void) {
+
+	/* DMA controller clock enable */
+	__HAL_RCC_DMA1_CLK_ENABLE();
+
+	/* DMA interrupt init */
+	/* DMA1_Channel1_IRQn interrupt configuration */
+	HAL_NVIC_SetPriority(DMA1_Channel1_IRQn, 0, 0);
+	HAL_NVIC_EnableIRQ(DMA1_Channel1_IRQn);
+
+}
+
+/**
+ * @brief GPIO Initialization Function
+ * @param None
+ * @retval None
+ */
+static void MX_GPIO_Init(void) {
+	GPIO_InitTypeDef GPIO_InitStruct = { 0 };
+	/* USER CODE BEGIN MX_GPIO_Init_1 */
+	/* USER CODE END MX_GPIO_Init_1 */
+
+	/* GPIO Ports Clock Enable */
+	__HAL_RCC_GPIOC_CLK_ENABLE();
+	__HAL_RCC_GPIOF_CLK_ENABLE();
+	__HAL_RCC_GPIOA_CLK_ENABLE();
+	__HAL_RCC_GPIOB_CLK_ENABLE();
+	__HAL_RCC_GPIOD_CLK_ENABLE();
+
+	/*Configure GPIO pin Output Level */
+	HAL_GPIO_WritePin(Thermal_Shutoff_GPIO_Port, Thermal_Shutoff_Pin,
+			GPIO_PIN_RESET);
+
+	/*Configure GPIO pin Output Level */
+	HAL_GPIO_WritePin(GPIOC,
+	Left_Lights_Pin | Right_Lights_Pin | Brake_Lights_Pin, GPIO_PIN_RESET);
+
+	/*Configure GPIO pin Output Level */
+	HAL_GPIO_WritePin(DRL_Left_GPIO_Port, DRL_Left_Pin, GPIO_PIN_RESET);
+
+	/*Configure GPIO pin Output Level */
+	HAL_GPIO_WritePin(GPIOB, DRL_Right_Pin | Extra_Output_Pin, GPIO_PIN_RESET);
+
+	/*Configure GPIO pin : B1_Pin */
+	GPIO_InitStruct.Pin = B1_Pin;
+	GPIO_InitStruct.Mode = GPIO_MODE_IT_FALLING;
+	GPIO_InitStruct.Pull = GPIO_NOPULL;
+	HAL_GPIO_Init(B1_GPIO_Port, &GPIO_InitStruct);
+
+	/*Configure GPIO pins : Extra_2_Input_Pin Extra_1_Input_Pin Hand_Brake_Pin Cruise_Control_Reset_Pin
+	 Cruise_Control_Set_Pin Cruise_Control_EN_Pin Neutral_Pin */
+	GPIO_InitStruct.Pin = Extra_2_Input_Pin | Extra_1_Input_Pin | Hand_Brake_Pin
+			| Cruise_Control_Reset_Pin | Cruise_Control_Set_Pin
+			| Cruise_Control_EN_Pin | Neutral_Pin;
+	GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+	GPIO_InitStruct.Pull = GPIO_NOPULL;
+	HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
+
+	/*Configure GPIO pins : Reverse_Pin Drive_Pin Left_Turn_Pin Right_Turn_Pin */
+	GPIO_InitStruct.Pin = Reverse_Pin | Drive_Pin | Left_Turn_Pin
+			| Right_Turn_Pin;
+	GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+	GPIO_InitStruct.Pull = GPIO_NOPULL;
+	HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
+
+	/*Configure GPIO pins : Hazards_Pin Foot_Brake_Pin Regen_EN_Pin */
+	GPIO_InitStruct.Pin = Hazards_Pin | Foot_Brake_Pin | Regen_EN_Pin;
+	GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+	GPIO_InitStruct.Pull = GPIO_NOPULL;
+	HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
+
+	/*Configure GPIO pin : Thermal_Shutoff_Pin */
+	GPIO_InitStruct.Pin = Thermal_Shutoff_Pin;
+	GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+	GPIO_InitStruct.Pull = GPIO_NOPULL;
+	GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+	HAL_GPIO_Init(Thermal_Shutoff_GPIO_Port, &GPIO_InitStruct);
+
+	/*Configure GPIO pins : Left_Lights_Pin Right_Lights_Pin Brake_Lights_Pin */
+	GPIO_InitStruct.Pin = Left_Lights_Pin | Right_Lights_Pin | Brake_Lights_Pin;
+	GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+	GPIO_InitStruct.Pull = GPIO_NOPULL;
+	GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+	HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
+
+	/*Configure GPIO pin : DRL_Left_Pin */
+	GPIO_InitStruct.Pin = DRL_Left_Pin;
+	GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+	GPIO_InitStruct.Pull = GPIO_NOPULL;
+	GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+	HAL_GPIO_Init(DRL_Left_GPIO_Port, &GPIO_InitStruct);
+
+	/*Configure GPIO pins : DRL_Right_Pin Extra_Output_Pin */
+	GPIO_InitStruct.Pin = DRL_Right_Pin | Extra_Output_Pin;
+	GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+	GPIO_InitStruct.Pull = GPIO_NOPULL;
+	GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+	HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
+
+	/* EXTI interrupt init*/
+	HAL_NVIC_SetPriority(EXTI15_10_IRQn, 0, 0);
+	HAL_NVIC_EnableIRQ(EXTI15_10_IRQn);
+
+	/* USER CODE BEGIN MX_GPIO_Init_2 */
+	/* USER CODE END MX_GPIO_Init_2 */
+}
+
+/* USER CODE BEGIN 4 */
+void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef *hadc) {
+	adcConversionComplete = 1;
+}
+/* USER CODE END 4 */
+
+/**
+ * @brief  This function is executed in case of error occurrence.
+ * @retval None
+ */
+void Error_Handler(void) {
+	/* USER CODE BEGIN Error_Handler_Debug */
+	/* User can add his own implementation to report the HAL error return state */
+	__disable_irq();
+	while (1) {
+	}
+	/* USER CODE END Error_Handler_Debug */
+}
+
+#ifdef  USE_FULL_ASSERT
+/**
+  * @brief  Reports the name of the source file and the source line number
+  *         where the assert_param error has occurred.
+  * @param  file: pointer to the source file name
+  * @param  line: assert_param error line source number
+  * @retval None
+  */
+void assert_failed(uint8_t *file, uint32_t line)
+{
+  /* USER CODE BEGIN 6 */
+  /* User can add his own implementation to report the file name and line number,
+     ex: printf("Wrong parameters value: file %s on line %d\r\n", file, line) */
+  /* USER CODE END 6 */
+}
+#endif /* USE_FULL_ASSERT */

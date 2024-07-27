@@ -1,0 +1,41 @@
+00:11:29 **** Incremental Build of configuration Debug for project RaspberryPiUARTExample ****
+make -j12 all 
+arm-none-eabi-gcc "../Core/Src/main.c" -mcpu=cortex-m4 -std=gnu11 -g3 -DDEBUG -DUSE_HAL_DRIVER -DSTM32F302x8 -c -I../Core/Inc -I../Drivers/STM32F3xx_HAL_Driver/Inc -I../Drivers/STM32F3xx_HAL_Driver/Inc/Legacy -I../Drivers/CMSIS/Device/ST/STM32F3xx/Include -I../Drivers/CMSIS/Include -O0 -ffunction-sections -fdata-sections -Wall -fstack-usage -fcyclomatic-complexity -MMD -MP -MF"Core/Src/main.d" -MT"Core/Src/main.o" --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -o "Core/Src/main.o"
+../Core/Src/main.c: In function 'main':
+../Core/Src/main.c:146:14: warning: unused variable 'charbuf' [-Wunused-variable]
+  146 |         char charbuf[64];
+      |              ^~~~~~~
+../Core/Src/main.c:145:17: warning: unused variable 'i' [-Wunused-variable]
+  145 |         uint8_t i = 3;
+      |                 ^
+../Core/Src/main.c:112:15: warning: unused variable 'f' [-Wunused-variable]
+  112 |         float f = 4.2;
+      |               ^
+../Core/Src/main.c:111:17: warning: unused variable 'floatbuf' [-Wunused-variable]
+  111 |         uint8_t floatbuf[4];
+      |                 ^~~~~~~~
+../Core/Src/main.c: At top level:
+../Core/Src/main.c:148:14: warning: 'printmsg' defined but not used [-Wunused-function]
+  148 |         void printmsg(char *format,...) {
+      |              ^~~~~~~~
+../Core/Src/main.c: In function 'main':
+../Core/Src/main.c:182:30: warning: 'prevTick' is used uninitialized [-Wuninitialized]
+  182 |                 if (currtick - prevTick > 2000) {
+      |                     ~~~~~~~~~^~~~~~~~~~
+../Core/Src/main.c:109:13: note: 'prevTick' was declared here
+  109 |         int prevTick;
+      |             ^~~~~~~~
+arm-none-eabi-gcc -o "RaspberryPiUARTExample.elf" @"objects.list"   -mcpu=cortex-m4 -T"C:\Users\15149\Coding-Projects\Sunstang\VCU_STM32_2024\RaspberryPiUARTExample\STM32F302R8TX_FLASH.ld" --specs=nosys.specs -Wl,-Map="RaspberryPiUARTExample.map" -Wl,--gc-sections -static --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
+Finished building target: RaspberryPiUARTExample.elf
+ 
+arm-none-eabi-size  RaspberryPiUARTExample.elf 
+arm-none-eabi-objdump -h -S RaspberryPiUARTExample.elf  > "RaspberryPiUARTExample.list"
+   text	   data	    bss	    dec	    hex	filename
+  10756	     12	   1772	  12540	   30fc	RaspberryPiUARTExample.elf
+Finished building: default.size.stdout
+ 
+Finished building: RaspberryPiUARTExample.list
+ 
+
+00:11:30 Build Finished. 0 errors, 6 warnings. (took 1s.296ms)
+

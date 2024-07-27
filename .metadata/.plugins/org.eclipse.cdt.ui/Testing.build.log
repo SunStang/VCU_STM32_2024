@@ -1,0 +1,65 @@
+22:01:54 **** Incremental Build of configuration Debug for project Testing ****
+make -j12 all 
+arm-none-eabi-gcc "../Core/Src/main.c" -mcpu=cortex-m4 -std=gnu11 -g3 -DDEBUG -DUSE_HAL_DRIVER -DSTM32F302x8 -c -I../Core/Inc -I../Drivers/STM32F3xx_HAL_Driver/Inc -I../Drivers/STM32F3xx_HAL_Driver/Inc/Legacy -I../Drivers/CMSIS/Device/ST/STM32F3xx/Include -I../Drivers/CMSIS/Include -O0 -ffunction-sections -fdata-sections -Wall -fstack-usage -fcyclomatic-complexity -MMD -MP -MF"Core/Src/main.d" -MT"Core/Src/main.o" --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -o "Core/Src/main.o"
+../Core/Src/main.c: In function 'HAL_CAN_RxFifo1MsgPendingCallback':
+../Core/Src/main.c:174:9: error: case label does not reduce to an integer constant
+  174 |         case IdentificationID:
+      |         ^~~~
+../Core/Src/main.c:188:9: error: case label does not reduce to an integer constant
+  188 |         case VelocityIdMC1:
+      |         ^~~~
+../Core/Src/main.c:194:9: error: case label does not reduce to an integer constant
+  194 |         case VelocityIdMC2:
+      |         ^~~~
+../Core/Src/main.c:201:9: error: case label does not reduce to an integer constant
+  201 |         case HeatSinkIdMC1:
+      |         ^~~~
+../Core/Src/main.c:203:24: error: 'MotorTemp' undeclared (first use in this function)
+  203 |                 memcpy(MotorTemp.byte, RxData, MCmsgSize);
+      |                        ^~~~~~~~~
+../Core/Src/main.c:203:24: note: each undeclared identifier is reported only once for each function it appears in
+../Core/Src/main.c:207:9: error: case label does not reduce to an integer constant
+  207 |         case HeatSinkIdMC2:
+      |         ^~~~
+../Core/Src/main.c:215:9: error: case label does not reduce to an integer constant
+  215 |         case BMSTempId:
+      |         ^~~~
+../Core/Src/main.c:221:9: error: case label does not reduce to an integer constant
+  221 |         case BMSVoltageId:
+      |         ^~~~
+../Core/Src/main.c:227:9: error: case label does not reduce to an integer constant
+  227 |         case BMSCurrentId:
+      |         ^~~~
+../Core/Src/main.c: At top level:
+../Core/Src/main.c:284:27: warning: unsigned conversion from 'int' to 'uint8_t' {aka 'unsigned char'} changes value from '750' to '238' [-Woverflow]
+  284 | uint8_t LowPriorityWait = 750;
+      |                           ^~~
+../Core/Src/main.c:295:22: warning: unsigned conversion from 'int' to 'uint8_t' {aka 'unsigned char'} changes value from '1000' to '232' [-Woverflow]
+  295 | uint8_t SignalWait = 1000; // accounts for left, right signals, and hazards
+      |                      ^~~~
+../Core/Src/main.c:297:22: warning: unsigned conversion from 'int' to 'uint8_t' {aka 'unsigned char'} changes value from '1000' to '232' [-Woverflow]
+  297 | uint8_t RPiMsgWait = 1000;
+      |                      ^~~~
+../Core/Src/main.c: In function 'motor_control':
+../Core/Src/main.c:315:42: warning: operation on 'DesiredCurrent.f' may be undefined [-Wsequence-point]
+  315 |                         DesiredCurrent.f = DesiredCurrent.f = 0.00000006
+      |                         ~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  316 |                                         * (pow((float) Acceleration, 2));
+      |                                         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+../Core/Src/main.c:325:34: warning: operation on 'DesiredCurrent.f' may be undefined [-Wsequence-point]
+  325 |                 DesiredCurrent.f = DesiredCurrent.f = 0.00000006
+      |                 ~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  326 |                                 * (pow((float) Acceleration, 2));
+      |                                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+../Core/Src/main.c: In function 'main':
+../Core/Src/main.c:839:41: warning: array subscript has type 'char' [-Wchar-subscripts]
+  839 |                                 RPM.byte[i] = RxData[i];
+      |                                         ^
+../Core/Src/main.c:839:53: warning: array subscript has type 'char' [-Wchar-subscripts]
+  839 |                                 RPM.byte[i] = RxData[i];
+      |                                                     ^
+make: *** [Core/Src/subdir.mk:34: Core/Src/main.o] Error 1
+"make -j12 all" terminated with exit code 2. Build might be incomplete.
+
+22:01:56 Build Failed. 10 errors, 7 warnings. (took 1s.950ms)
+
